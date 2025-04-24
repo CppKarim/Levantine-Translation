@@ -1,0 +1,33 @@
+[project]
+name = "project"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "accelerate>=1.6.0",
+    "camel-tools>=1.5.6",
+    "datasets>=3.5.0",
+    "torch>=2.6.0",
+    "torchvision>=0.21.0",
+    "trl>=0.12.2",
+    "wandb>=0.19.10",
+]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cuda" },
+]
+torchvision = [
+    { index = "pytorch-cuda" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cuda"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.29.5",
+]
