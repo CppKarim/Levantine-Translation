@@ -1,4 +1,4 @@
-# Arabic Dialect Translation
+# Levantine Translation
 
 A framework for training language models to translate between dialects of Arabic with a focus on Levantine Arabic. This repository implements approaches for both direct translation and phoneticization-based translation inspired by the Romansetu paper.
 
@@ -28,49 +28,54 @@ source .venv/bin/activate
 
 ### 1. Dataset Preparation
 
-The `create_dataset.py` script downloads and processes the dataset for training:
+The `create_dataset..sh` script downloads and processes the dataset for training:
 
 ```bash
-python create_dataset.py --data_dir data/ --output_dir processed_data/ --push_to_hub
+./src/create_dataset.py 
 ```
 
-This will:
-- Download the North Levantine parallel corpus
+Under the hood, this will:
+- Download the UFAL Parallel Corpus of North Levantine 1.0
+- Perform the preprocessing needed to transform the downloaded files into a Huggingface dataset
 - Process it into four dataset variants:
-  - `finetune`: Direct dialect translation with empty prompts
-  - `translate`: Translation with prompts indicating source and target languages
+  - `finetune`: Text entries from english, classical arabic, and levantine arabic
+  - `translate`: Translation data, with prompts indicating source and target languages
   - `finetune_roman`: Transliterated version of the finetune dataset
   - `translate_roman`: Transliterated version of the translate dataset
 - Optionally upload the processed datasets to Hugging Face Hub
 
+The script can be modified to push the datasets to Huggingface and choose the repo name, as well as changing the location of the dataset files on disk, or where the dataset will be saved.
+
 ### 2. Model Training
-
-#### Sequence-to-Sequence Translation
-
-To train a model for dialect translation:
-
-```bash
-./seq_2_seq.sh
-```
-
-This script trains a sequence-to-sequence model to translate between Arabic dialects.
 
 #### Fine-tuning
 
 To fine-tune a pre-trained language model:
 
 ```bash
-./finetune.sh
+./src/finetune.sh
 ```
 
-This script fine-tunes a model on the prepared dataset.
+This script fine-tunes a model on the prepared dataset. This is performed before training the model on translation, to prepare the model for the distribution shift induced by the new language, since it is originally trained on english.
+
+This script is very modular, and allows to changing the trained model, the dataset used, learning rate, epochs, gradient accumulation steps, model save location, as well as some other parameters. The script uses huggingface accelerate to simplify training on different kidns of hardware environments.
+
+#### Sequence-to-Sequence Translation
+
+To train a model for dialect translation:
+
+```bash
+./src/seq_2_seq.sh
+```
+
+This script trains a sequence-to-sequence model to translate between Arabic dialects. This will train the model on translatino betwwen every pair of languages in {english, classical arabic, and levantine arabic}. The reason behind this choice is that since the model is originally trained on english, this will serve as a "Rosetta stone" between the languages and allow transfer learning into the other languages. This is similar to the procedure used in the RomanSetu paper where their continual pretraining involved using both english corpora as well as coropra from their target language.
 
 ### 3. Evaluation & Results
 
 To evaluate a trained model:
 
 ```bash
-./evaluate.sh --model path/to/model --dataset path/to/test_data
+./src/evaluate.sh --model path/to/model --dataset path/to/test_data
 ```
 
 The evaluation script calculates:
@@ -113,11 +118,11 @@ The processed datasets have the following structure:
 }
 ```
 
-### Romanized Translation Format
+### Romanized (HSB) Translation Format
 ```python
 {
   "prompt": ["english: Hello, how are you?\nclassical arabic:"],
-  "completion": ["mrHbA kyf HAlk?"]
+  "completion": ["mrHbA kyf HAlk؟"]
 }
 ```
 
@@ -131,3 +136,34 @@ The processed datasets have the following structure:
 - Datasets
 - SacreBLEU
 - wandb (for experiment tracking)
+
+## Citation
+
+If you use this code, please cite:
+
+```
+@software{Levantine-Translation},
+  author = {Karim El Husseini},
+  title = {Levantine Translation},
+  year = {2025},
+  url = {https://github.com/CppKarim/Levantine-Translation.git}
+}
+```
+
+This work is inspired by the RomanSetu paper:
+
+```
+@misc{husain2024romansetuefficientlyunlockingmultilingual,
+      title={RomanSetu: Efficiently unlocking multilingual capabilities of Large Language Models via Romanization}, 
+      author={Jaavid Aktar Husain and Raj Dabre and Aswanth Kumar and Jay Gala and Thanmay Jayakumar and Ratish Puduppully and Anoop Kunchukuttan},
+      year={2024},
+      eprint={2401.14280},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2401.14280}, 
+}
+```
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
