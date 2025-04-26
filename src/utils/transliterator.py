@@ -2,6 +2,8 @@
 """
 Arabic Transliteration Library
 A Python port of the JavaScript Arabic transliteration system
+Adapted into python from this repo:
+https://github.com/levantinedictionary/levantinetransliterator/tree/main
 """
 import re
 from typing import List, Dict, Union, Tuple, Set
