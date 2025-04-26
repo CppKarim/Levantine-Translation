@@ -132,7 +132,7 @@ The processed datasets have the following structure:
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.12+
 - uv package manager
 - CamelTools
 - PyTorch
@@ -167,7 +167,3 @@ This work is inspired by the RomanSetu paper:
       url={https://arxiv.org/abs/2401.14280}, 
 }
 ```
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
