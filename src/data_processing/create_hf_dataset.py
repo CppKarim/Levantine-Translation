@@ -106,26 +106,6 @@ def create_north_levantine_dataset(data_dir):
     # Create the merged dataset
     merged_dataset = Dataset.from_dict(merged_data)
     
-    # Add OpenSubtitles reference information if available
-    if ids_data:
-        print("Adding OpenSubtitles reference information...")
-        # This could be expanded to add the mapping information to the dataset
-        # For now, we just note that it's available
-    
-    # Step 4: Load the .ids files (optional)
-    ids_data = {}
-    
-    # Discover all .ids files
-    ids_files = {}
-    for file in os.listdir(data_dir):
-        if file.endswith(".ids"):
-            lang_pair = file.split(".")[-2]  # Get the lang-eng part
-            ids_files[lang_pair] = os.path.join(data_dir, file)
-    
-    for lang_pair, file_path in ids_files.items():
-        ids_data[lang_pair] = load_ids_file(file_path)
-        print(f"Loaded {lang_pair} file with {len(ids_data[lang_pair])} lines")
-    
     # Create a dataset dictionary with train split
     dataset_dict = DatasetDict({
         'train': merged_dataset
@@ -133,15 +113,6 @@ def create_north_levantine_dataset(data_dir):
     
     return dataset_dict
 
-def save_to_huggingface(dataset, output_dir):
-    """Save the dataset to disk in Hugging Face format."""
-    dataset.save_to_disk(output_dir)
-    print(f"Dataset saved to {output_dir}")
-
-def push_to_hub(dataset, repo_name, token=None):
-    """Push the dataset to the Hugging Face Hub."""
-    dataset.push_to_hub(repo_name, token=token)
-    print(f"Dataset pushed to Hugging Face Hub as {repo_name}")
 
 def get_parallel_sentences(dataset, index, languages=None):
     """
@@ -180,7 +151,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # Create the dataset
-    dataset = create_north_levantine_dataset(args.data_dir)
+    dataset = create_north_levantine_dataset(args.data_dir)["train"].train_test_split(test_size=0.15, seed=42)
     
     # Print some information about the dataset
     print("\nDataset Information:")
@@ -199,9 +170,13 @@ if __name__ == "__main__":
             print(f"  {lang}: {sentence}")
     
     # Save the dataset locally
-    save_to_huggingface(dataset, args.output_dir)
+
+    dataset.save_to_disk(args.output_dir)
+    print(f"Dataset saved to {args.output_dir}")
+
     
     # Push to Hugging Face Hub if requested
     if args.push_to_hub:
-        push_to_hub(dataset, args.repo_name, args.token)
+        dataset.push_to_hub(args.repo_name, token=args.token)
+        print(f"Dataset pushed to Hugging Face Hub as {args.repo_name}")
     
