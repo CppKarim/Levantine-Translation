@@ -4,11 +4,11 @@ A framework for training language models to translate between dialects of Arabic
 
 ## Features
 
-- 🔤 **Phoneticization and Transliteration**: Convert Arabic script to Latin alphabet using the HSB (Habash-Soudi-Buckwalter) system via the CamelTools library
-- 🔄 **Dialect Translation**: Train models to translate between Modern Standard Arabic (MSA) and Levantine Arabic dialects
+- 🔤 **Transliteration**: Convert Arabic script to an approximate Latin alphabet using the HSB (Habash-Soudi-Buckwalter) system via the CamelTools library
+- 🔄 **Dialect Translation**: Train models to translate between Modern Standard Arabic (MSA), Levantine Arabic dialects, and English
 - 📊 **Comprehensive Evaluation**: Measure model performance using perplexity, BLEU scores, and evaluation loss
 - 🤗 **Hugging Face Integration**: Easily upload processed datasets and models to Hugging Face Hub
-- 🧩 **Modular Architecture**: Separate scripts for dataset creation, model training, and evaluation
+- 🧩 **Modular Architecture**: Separate scripts for dataset creation, model training, and evaluation which can be customized using parameters
 
 ## Installation
 
