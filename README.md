@@ -75,7 +75,7 @@ This script trains a sequence-to-sequence model to translate between Arabic dial
 To evaluate a trained model:
 
 ```bash
-./src/evaluate.sh --model path/to/model --dataset path/to/test_data
+./src/evaluate.sh 
 ```
 
 The evaluation script calculates:
@@ -87,9 +87,13 @@ Results then logged to Weights & Biases for portability and visualization.
 Results are availaible under the following project:
 https://wandb.ai/khuss/CS512
 
-## Phoneticization Approach
+## Transliteration Approach
 
-This repository implements phoneticization/latinization of Arabic text by transliterating it into Latin script using the HSB system. This approach is inspired by the Romansetu paper, which demonstrated improved performance for languages that don't use the Latin script. To do this, multiple tools were explored, and this is illustrated in the transliteration.ipynb notebook. 
+This repository implements phoneticization/latinization of Arabic text by transliterating it into Latin script using the HSB (Habash-Soudi-Buckwalter) transliteration system. This is a fully reversible transliteration system, which is build upon the original Buckwalter system by making it easy to read. 
+
+Since HSB uses (mostly) latin characters, we use it as an approximate latinization. This approach builds upon the work in the Romansetu paper, which demonstrated improved performance for languages that don't use the Latin script. In the original paper, the authors use latinzation to improve performance on a target language, as well as imporve translation ability between that languge and english. We build upon this by using latinization to help with multi-way translation: between english, arabic, and levantine arabic, a dialect of arabic with some latin influences.
+
+To do this, multiple tools were explored, and this is illustrated in the transliteration.ipynb notebook. 
 
 Example of Arabic text transliteration:
 ```
