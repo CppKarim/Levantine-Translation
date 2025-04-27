@@ -131,7 +131,7 @@ def calculate_perplexity(model, tokenizer, dataset, batch_size, state, max_lengt
                     neg_log_likelihood = loss.item() * completion_token_count
                     nlls.append(neg_log_likelihood)
                     token_counts.append(completion_token_count)
-    nlls, token_counts = gather_object(nlls, token_counts)
+    nlls, token_counts = gather_object(nlls), gather_object(token_counts)
 
     # Calculate aggregate perplexity
     if not token_counts:
