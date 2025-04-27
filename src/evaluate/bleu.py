@@ -390,37 +390,38 @@ def main():
 
     # Load the model and tokenizer
     print(f"Loading model and tokenizer from: {args.model}")
-    tokenizer = AutoTokenizer.from_pretrained(args.model,padding_side="left")
-    model = AutoModelForCausalLM.from_pretrained(args.model).requires_grad_(False).eval().to(device)
-    if tokenizer.pad_token_id==None:
-        tokenizer.pad_token_id = tokenizer.eos_token_id
-        model.config.pad_token_id = tokenizer.pad_token_id
+    with state.main_process_first():
+        tokenizer = AutoTokenizer.from_pretrained(args.model,padding_side="left")
+        model = AutoModelForCausalLM.from_pretrained(args.model).requires_grad_(False).eval().to(device)
+        if tokenizer.pad_token_id==None:
+            tokenizer.pad_token_id = tokenizer.eos_token_id
+            model.config.pad_token_id = tokenizer.pad_token_id
 
-    # Load the dataset
-    if os.path.exists(args.dataset):
-        dataset = DatasetDict.load_from_disk(args.dataset)[args.split]
-    else:
-        dataset = load_dataset(args.dataset)[args.split]
-    
-    def language_format(row):
-        split = row["prompt"].split(':',1) 
-        source = split[0] 
-        split = split[1].rsplit('\n',1)
-        target = split[1]
-        if args.source_lang==source and args.target_lang==target:
-            return row
+        # Load the dataset
+        if os.path.exists(args.dataset):
+            dataset = DatasetDict.load_from_disk(args.dataset)[args.split]
+        else:
+            dataset = load_dataset(args.dataset)[args.split]
+        
+        def language_format(row):
+            split = row["prompt"].split(':',1) 
+            source = split[0] 
+            split = split[1].rsplit('\n',1)
+            target = split[1]
+            if args.source_lang==source and args.target_lang==target:
+                return row
 
-    dataset = dataset.map(language_format,
-        remove_columns=dataset.column_names,
-        desc="Removing rows of non-specified langugages",
-        batched=False,
-        batch_size=1, 
-        )
+        dataset = dataset.map(language_format,
+            remove_columns=dataset.column_names,
+            desc="Removing rows of non-specified langugages",
+            batched=False,
+            batch_size=1, 
+            )
 
-    # Validate the dataset format
-    if not validate_dataset_format(dataset):
-        raise ValueError("Dataset format is not valid for translation evaluation. "
-                         "It should contain 'prompt' and 'completion' columns or equivalent.")
+        # Validate the dataset format
+        if not validate_dataset_format(dataset):
+            raise ValueError("Dataset format is not valid for translation evaluation. "
+                            "It should contain 'prompt' and 'completion' columns or equivalent.")
     
     # Evaluate the translations
     evaluate_bleu(

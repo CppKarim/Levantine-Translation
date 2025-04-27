@@ -207,23 +207,24 @@ def main():
         run_name = args.wandb_run_name or f"perplexity-{args.model.split('/')[-1]}-{dataset}"
         wandb.init(project=args.wandb_project, name=run_name, config=vars(args))
     
-    # Load the model and tokenizer
-    model = AutoModelForCausalLM.from_pretrained(args.model).requires_grad_(False).eval().to(device)
-    tokenizer = AutoTokenizer.from_pretrained(args.model)
-    if tokenizer.pad_token_id==None:
-        tokenizer.pad_token_id = tokenizer.eos_token_id
-        model.config.pad_token_id = tokenizer.pad_token_id
-    
-    # Load the dataset
-    # Dataset should have "prompt" and "completion" columns
-    if os.path.exists(args.dataset):
-        dataset = DatasetDict.load_from_disk(args.dataset)[args.split]
-    else:
-        dataset = load_dataset(args.dataset)[args.split]
-    
-    if not validate_dataset_format(dataset):
-        raise ValueError("Dataset format is not valid. It should contain 'prompt'/'completion' columns.")
-    
+    with state.main_process_first():
+        # Load the model and tokenizer
+        model = AutoModelForCausalLM.from_pretrained(args.model).requires_grad_(False).eval().to(device)
+        tokenizer = AutoTokenizer.from_pretrained(args.model)
+        if tokenizer.pad_token_id==None:
+            tokenizer.pad_token_id = tokenizer.eos_token_id
+            model.config.pad_token_id = tokenizer.pad_token_id
+        
+        # Load the dataset
+        # Dataset should have "prompt" and "completion" columns
+        if os.path.exists(args.dataset):
+            dataset = DatasetDict.load_from_disk(args.dataset)[args.split]
+        else:
+            dataset = load_dataset(args.dataset)[args.split]
+        
+        if not validate_dataset_format(dataset):
+            raise ValueError("Dataset format is not valid. It should contain 'prompt'/'completion' columns.")
+        
     # Calculate perplexity
     evaluate_perplexity(
         model, tokenizer, dataset, 
