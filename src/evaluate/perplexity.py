@@ -44,7 +44,7 @@ def validate_dataset_format(dataset):
     
     return False
 
-def calculate_perplexity(model, tokenizer, dataloader, max_length=512):
+def calculate_perplexity(model, tokenizer, dataset, batch_size, state, max_length=512):
     """
     Calculate perplexity for a causal language model.
     
@@ -63,73 +63,76 @@ def calculate_perplexity(model, tokenizer, dataloader, max_length=512):
     
     nlls = []
     token_counts = []
-    
-    # Calculate perplexity for each batch
-    for batch in tqdm(dataloader, desc="Calculating Perplexity"):
-        batch_prompts = batch["prompt"]
-        batch_completions = batch["completion"]
-        
-        # Ensure prompts and completions are lists of strings
-        if isinstance(batch_prompts, str):
-            batch_prompts = [batch_prompts]
-        if isinstance(batch_completions, str):
-            batch_completions = [batch_completions]
-        
-        batch_size = len(batch_prompts)
-        combined_texts = []
-        prompt_lengths = []
-        
-        # Combine prompts and completions
-        for prompt, completion in zip(batch_prompts, batch_completions):
-            combined_texts.append(prompt + completion)
-            # Calculate prompt length in tokens (subtract 1 to not count the last token twice)
-            prompt_tokens = tokenizer.encode(prompt)
-            prompt_lengths.append(len(prompt_tokens) - 1 if len(prompt_tokens) > 0 else 0)
-        
-        # Tokenize the combined texts with padding
-        encodings = tokenizer(
-            combined_texts, 
-            padding=True, 
-            return_tensors="pt", 
-            truncation=True,
-            max_length=max_length
-        ).to(model.device)
-        
-        input_ids = encodings.input_ids
-        attention_mask = encodings.attention_mask
-        
-        # Create labels by shifting input_ids right (standard causal LM approach)
-        labels = input_ids.clone()
-        
-        # Mask out prompt tokens and padding tokens in labels
-        for i in range(batch_size):
-            # Mask prompt tokens
-            labels[i, :prompt_lengths[i]] = -100
-            # Also mask padding tokens
-            padding_positions = (attention_mask[i] == 0)
-            labels[i, padding_positions] = -100
-        
-        # Forward pass with labels
-        with torch.no_grad():
-            outputs = model(
-                input_ids=input_ids, 
-                attention_mask=attention_mask, 
-                labels=labels
-            )
-            loss = outputs.loss
+
+    with state.split_between_processes(dataset) as partial_dataset:
+        dataloader = DataLoader(partial_dataset, batch_size=batch_size)
+        # Calculate perplexity for each batch
+        for batch in tqdm(dataloader, desc="Calculating Perplexity"):
+            batch_prompts = batch["prompt"]
+            batch_completions = batch["completion"]
             
-        # Calculate per-example stats
-        for i in range(batch_size):
-            # Count non-masked tokens in completion
-            completion_token_count = (labels[i] != -100).sum().item()
+            # Ensure prompts and completions are lists of strings
+            if isinstance(batch_prompts, str):
+                batch_prompts = [batch_prompts]
+            if isinstance(batch_completions, str):
+                batch_completions = [batch_completions]
             
-            if completion_token_count > 0:
-                # For per-example loss, we need to calculate it separately
-                # This is a simplification - ideally we'd compute per-example loss directly
-                neg_log_likelihood = loss.item() * completion_token_count
-                nlls.append(neg_log_likelihood)
-                token_counts.append(completion_token_count)
-    
+            batch_size = len(batch_prompts)
+            combined_texts = []
+            prompt_lengths = []
+            
+            # Combine prompts and completions
+            for prompt, completion in zip(batch_prompts, batch_completions):
+                combined_texts.append(prompt + completion)
+                # Calculate prompt length in tokens (subtract 1 to not count the last token twice)
+                prompt_tokens = tokenizer.encode(prompt)
+                prompt_lengths.append(len(prompt_tokens) - 1 if len(prompt_tokens) > 0 else 0)
+            
+            # Tokenize the combined texts with padding
+            encodings = tokenizer(
+                combined_texts, 
+                padding=True, 
+                return_tensors="pt", 
+                truncation=True,
+                max_length=max_length
+            ).to(model.device)
+            
+            input_ids = encodings.input_ids
+            attention_mask = encodings.attention_mask
+            
+            # Create labels by shifting input_ids right (standard causal LM approach)
+            labels = input_ids.clone()
+            
+            # Mask out prompt tokens and padding tokens in labels
+            for i in range(batch_size):
+                # Mask prompt tokens
+                labels[i, :prompt_lengths[i]] = -100
+                # Also mask padding tokens
+                padding_positions = (attention_mask[i] == 0)
+                labels[i, padding_positions] = -100
+            
+            # Forward pass with labels
+            with torch.no_grad():
+                outputs = model(
+                    input_ids=input_ids, 
+                    attention_mask=attention_mask, 
+                    labels=labels
+                )
+                loss = outputs.loss
+                
+            # Calculate per-example stats
+            for i in range(batch_size):
+                # Count non-masked tokens in completion
+                completion_token_count = (labels[i] != -100).sum().item()
+                
+                if completion_token_count > 0:
+                    # For per-example loss, we need to calculate it separately
+                    # This is a simplification - ideally we'd compute per-example loss directly
+                    neg_log_likelihood = loss.item() * completion_token_count
+                    nlls.append(neg_log_likelihood)
+                    token_counts.append(completion_token_count)
+    nlls, token_counts = gather_object(nlls, token_counts)
+
     # Calculate aggregate perplexity
     if not token_counts:
         return {
@@ -168,22 +171,16 @@ def evaluate_perplexity(model, tokenizer, dataset, state, batch_size=8, max_leng
     """
 
     # Calculate perplexity based on model type
-    with state.split_between_processes(dataset) as partial_dataset:
-        dataloader = DataLoader(partial_dataset, batch_size=batch_size)
-        results = calculate_perplexity(model, tokenizer, dataloader,max_length=max_length)
-    results = gather_object(results)
+    results = calculate_perplexity(model, tokenizer, dataset, batch_size, state, max_length=max_length)
     
-    # Kill non main processes   
-    if not state.is_main_process:
-        return
-
     # Print the results
-    print(f"Perplexity: {results['perplexity']:.4f}")
-    print(f"Total tokens: {results['total_tokens']}")
-    print(f"Average negative log-likelihood: {results['average_nll']:.4f}")
+    if state.is_main_process:
+        print(f"Perplexity: {results['perplexity']:.4f}")
+        print(f"Total tokens: {results['total_tokens']}")
+        print(f"Average negative log-likelihood: {results['average_nll']:.4f}")
     
-    # Log results to W&B if enabled
-    wandb.log(results)
+        # Log results to W&B if enabled
+        wandb.log(results)
     
     return results
 
@@ -202,8 +199,9 @@ def main():
     args = parser.parse_args()
     
     # Initialize wandb if enabled
-    run_name = args.wandb_run_name or f"perplexity-{args.model.split('/')[-1]}-{dataset}"
-    wandb.init(project=args.wandb_project, name=run_name, config=vars(args))
+    if state.is_main_process:
+        run_name = args.wandb_run_name or f"perplexity-{args.model.split('/')[-1]}-{dataset}"
+        wandb.init(project=args.wandb_project, name=run_name, config=vars(args))
     
     # Use accelerate for distirbuted inference of model
     state = PartialState()
@@ -235,7 +233,8 @@ def main():
     )
     
     # Finish the wandb run if initialized
-    wandb.finish()
+    if state.is_main_process:
+        wandb.finish()
 
 
 if __name__ == "__main__":

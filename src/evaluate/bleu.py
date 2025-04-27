@@ -239,7 +239,6 @@ def evaluate_bleu(dataset, model, tokenizer, state, batch_size: int = 8, max_len
         Dictionary containing the evaluation results
     """
     
-    dataset = dataset.select(range(100))
     # Translate the source texts
     with state.split_between_processes(dataset) as partial_dataset:
         dataloader = DataLoader(partial_dataset, batch_size=batch_size)
