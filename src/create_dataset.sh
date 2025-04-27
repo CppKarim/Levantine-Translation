@@ -8,11 +8,11 @@ cd ../
 
 uv run ./src/data_processing/create_hf_dataset.py \
  --data_dir "data/dataset/UFAL Parallel Corpus of North Levantine 1.0"\
- --output_dir "data/dataset/Huggingface/UFAL Parallel Corpus of North Levantine 1.0 test"\
+ --output_dir "data/dataset/Huggingface/UFAL Parallel Corpus of North Levantine"\
  --push_to_hub --repo_name UFAL
 
 
 uv run .\src\data_processing\prepare_training_datasets.py\
- --dataset "data\dataset\Huggingface\UFAL Parallel Corpus of North Levantine 1.0"\
+ --dataset "data\dataset\Huggingface\UFAL Parallel Corpus of North Levantine"\
  --output_dir "data\dataset\Huggingface"\
  --push_to_hub --repo_name UFAL
