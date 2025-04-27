@@ -83,8 +83,7 @@ def main():
     os.makedirs(f"{dir}/final",exist_ok=True)
 
     training_args = SFTConfig(
-        output_dir=dir, save_total_limit=2, 
-        load_best_model_at_end=True,metric_for_best_model="loss",greater_is_better=True,
+        output_dir=dir, save_total_limit=2, load_best_model_at_end=True, metric_for_best_model='loss',
         logging_steps=1e-3, eval_steps = args.save_interval, save_steps= args.save_interval, logging_strategy='steps', eval_strategy='steps', save_strategy='steps' if args.save_model else 'no', 
         max_grad_norm=args.max_grad_norm, learning_rate= args.learning_rate , gradient_accumulation_steps=args.gradient_accumulation_steps, auto_find_batch_size= False, num_train_epochs=args.epochs,weight_decay = args.weight_decay,
         max_seq_length=args.seq_len, 
