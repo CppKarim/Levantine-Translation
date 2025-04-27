@@ -198,14 +198,14 @@ def main():
     
     args = parser.parse_args()
     
+    # Use accelerate for distirbuted inference of model
+    state = PartialState()
+    device = state.device
+
     # Initialize wandb if enabled
     if state.is_main_process:
         run_name = args.wandb_run_name or f"perplexity-{args.model.split('/')[-1]}-{dataset}"
         wandb.init(project=args.wandb_project, name=run_name, config=vars(args))
-    
-    # Use accelerate for distirbuted inference of model
-    state = PartialState()
-    device = state.device
     
     # Load the model and tokenizer
     model = AutoModelForCausalLM.from_pretrained(args.model).requires_grad_(False).eval().to(device)
