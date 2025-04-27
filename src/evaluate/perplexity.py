@@ -173,6 +173,10 @@ def evaluate_perplexity(model, tokenizer, dataset, state, batch_size=8, max_leng
         results = calculate_perplexity(model, tokenizer, dataloader,max_length=max_length)
     results = gather_object(results)
     
+    # Kill non main processes   
+    if not state.is_main_process:
+        return
+
     # Print the results
     print(f"Perplexity: {results['perplexity']:.4f}")
     print(f"Total tokens: {results['total_tokens']}")

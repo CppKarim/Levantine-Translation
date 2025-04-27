@@ -246,6 +246,10 @@ def evaluate_bleu(dataset, model, tokenizer, state, batch_size: int = 8, max_len
         candidate_texts = translate_texts(model, tokenizer, dataloader,max_length=max_length)
     candidate_texts = gather_object(candidate_texts)
     
+    # Kill non main processes   
+    if not state.is_main_process:
+        return
+
     # Format dataset by removing languages from prompt
     def bleu_format(row):
         prompt = row["prompt"].split(':')[1].split('\n')[0]
@@ -367,21 +371,23 @@ def main():
     parser.add_argument("--wandb_run_name", type=str, default=None,help="Weights & Biases run name (default: auto-generated)")
     args = parser.parse_args()
     
+    # Use accelerate for distirbuted inference of model
+    state = PartialState()
+    device = state.device
+
     # Initialize wandb if enabled
-    project = args.wandb_project
-    run_name = args.wandb_run_name or f"BLEU-{args.model.split('/')[-1]}-{dataset}"
-    wandb.init(
-        project=project,
-        name=run_name,
-        config=vars(args)
-    )
+    if state.is_main_process:
+        project = args.wandb_project
+        run_name = args.wandb_run_name or f"BLEU-{args.model.split('/')[-1]}-{dataset}"
+        wandb.init(
+            project=project,
+            name=run_name,
+            config=vars(args)
+        )
 
     # Download NLTK resources
     download_nltk_resources()
     
-    # Use accelerate for distirbuted inference of model
-    state = PartialState()
-    device = state.device
 
     # Load the model and tokenizer
     print(f"Loading model and tokenizer from: {args.model}")
@@ -424,7 +430,8 @@ def main():
         max_length=args.max_length,
     )
 
-    wandb.finish()
+    if state.is_main_process:
+        wandb.finish()
 
 
 if __name__ == "__main__":
