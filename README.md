@@ -86,6 +86,8 @@ The evaluation script calculates:
 Results then logged to Weights & Biases for portability and visualization. In the project workspace directory, multiple panels can be found which showcase the resuts. These panels include example translations for the models, Perplexity, BLEU scores, as well as Evaluation and Training losses recorded during training for multiple training runs used in hyperparameter tuning of the model
 Results are availaible under the following project:
 https://wandb.ai/khuss/CS512
+The main results are also collected into a report, available here:
+https://wandb.ai/khuss/CS512/reports/Dialect-Translation--VmlldzoxMjU4NjI3OQ
 
 
 
