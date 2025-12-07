@@ -1,6 +1,6 @@
 # Levantine Translation
 
-A framework for training language models to translate between dialects of Arabic with a focus on Levantine Arabic. This repository implements approaches for both direct translation and phoneticization-based translation inspired by the Romansetu paper.
+A library for training language models to translate between dialects of Arabic with a focus on Levantine Arabic. This repository implements approaches for both direct translation and phoneticization-based translation inspired by the Romansetu paper.
 
 ## Features
 
